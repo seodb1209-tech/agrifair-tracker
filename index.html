@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>글로벌 농업박람회 트래커</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --eu:#E24B4A; --na:#D85A30; --sa:#BA7517;
+  --ap:#3B6D11; --me:#185FA5; --kr:#534AB7;
+  --bg:#f8f7f4; --surface:#fff; --surface2:#f2f1ed;
+  --border:#e4e2db; --border2:#d0cec6;
+  --text:#1a1a18; --text2:#5a5955; --text3:#9a9890;
+  --confirm-bg:#eaf3de; --confirm:#27500a; --confirm-bd:#c0dd97;
+  --tbcbg:#faeeda; --tbc:#633806; --tbcbd:#fac775;
+  --mv-bg:#fbeaf0; --mv:#72243e; --mv-bd:#f4c0d1;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#0f0f0e; --surface:#1a1a18; --surface2:#222220;
+  --border:#2e2e2b; --border2:#3a3a37;
+  --text:#f0ede8; --text2:#8a8780; --text3:#5a5855;
+}}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Noto Sans KR',-apple-system,sans-serif;font-size:14px;overflow-x:hidden;}
+
+/* FONTS */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+.mono{font-family:'JetBrains Mono',monospace;}
+
+/* SCREENS */
+#screen-list{display:block;}
+#screen-detail{display:none;position:fixed;inset:0;background:var(--bg);z-index:100;overflow-y:auto;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);}
+#screen-detail.open{transform:translateX(0);}
+
+/* HEADER */
+.hdr{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--border);padding:12px 16px 10px;}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.hdr-title{font-size:16px;font-weight:700;color:var(--text);}
+.hdr-sub{font-size:11px;color:var(--text3);}
+.share-btn{font-size:11px;color:var(--me);border:1px solid var(--me);border-radius:6px;padding:4px 10px;background:transparent;cursor:pointer;}
+
+/* TIMELINE */
+.tl-section{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 14px 10px;}
+.tl-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:8px;}
+.tl-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);}
+.leg-dot{width:8px;height:8px;border-radius:2px;}
+.tl-axis{display:flex;padding-left:50px;margin-bottom:4px;}
+.tl-am{flex:1;font-size:7px;color:var(--text3);text-align:center;}
+.tl-am.cur{color:var(--me);font-weight:600;}
+.kae-box{background:rgba(83,74,183,.07);border:1px solid rgba(83,74,183,.2);border-radius:6px;padding:5px 8px;margin-bottom:6px;}
+.kae-box-lbl{font-size:9px;font-weight:600;color:#3c3489;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px;display:flex;align-items:center;gap:6px;}
+.kae-box-lbl::after{content:'';flex:1;height:1px;background:rgba(83,74,183,.25);}
+.kae-box-sub{font-size:8px;color:#534ab7;opacity:.75;margin-bottom:5px;}
+.reg-hdr{display:flex;align-items:center;gap:5px;margin:5px 0 3px;font-size:8px;font-weight:600;letter-spacing:.3px;}
+.reg-hdr::after{content:'';flex:1;height:.5px;opacity:.35;}
+.rh-eu{color:var(--eu);} .rh-eu::after{background:var(--eu);}
+.rh-na{color:var(--na);} .rh-na::after{background:var(--na);}
+.rh-sa{color:var(--sa);} .rh-sa::after{background:var(--sa);}
+.rh-ap{color:var(--ap);} .rh-ap::after{background:var(--ap);}
+.rh-me{color:var(--me);} .rh-me::after{background:var(--me);}
+.tl-row{display:flex;align-items:center;gap:4px;margin-bottom:2.5px;}
+.tl-name{font-size:8px;color:var(--text3);width:46px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tl-name.kae{color:#3c3489;font-weight:600;}
+.tl-track{flex:1;height:8px;position:relative;background:var(--border);border-radius:2px;}
+.tl-bar{position:absolute;top:0;height:100%;border-radius:2px;}
+.tl-skip-bar{position:absolute;top:0;left:0;right:0;height:100%;border-radius:2px;
+  background:repeating-linear-gradient(-45deg,transparent,transparent 2px,rgba(128,128,128,.12) 2px,rgba(128,128,128,.12) 3px);}
+.tl-today-line{position:absolute;top:-5px;bottom:-5px;width:2px;border-radius:1px;background:#f59e0b;z-index:5;}
+.tl-today-lbl{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:7px;color:#f59e0b;white-space:nowrap;font-weight:500;}
+.tl-grid-overlay{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;pointer-events:none;}
+.tl-gc{flex:1;border-right:.5px solid var(--border);opacity:.4;}
+.tl-gc:last-child{border-right:none;}
+
+/* FILTER CHIPS */
+.filter-wrap{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 14px;}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;}
+.chips::-webkit-scrollbar{display:none;}
+.chip{padding:4px 12px;border:1px solid var(--border2);border-radius:20px;font-size:11px;color:var(--text2);white-space:nowrap;cursor:pointer;background:transparent;transition:all .15s;}
+.chip.active{background:var(--surface2);border-color:var(--border2);color:var(--text);font-weight:500;}
+.chip.active-eu{background:rgba(226,75,74,.1);border-color:var(--eu);color:var(--eu);}
+.chip.active-na{background:rgba(216,90,48,.1);border-color:var(--na);color:var(--na);}
+.chip.active-sa{background:rgba(186,117,23,.1);border-color:var(--sa);color:var(--sa);}
+.chip.active-ap{background:rgba(59,109,17,.1);border-color:var(--ap);color:var(--ap);}
+.chip.active-me{background:rgba(24,95,165,.1);border-color:var(--me);color:var(--me);}
+
+/* SORT BAR */
+.sort-wrap{background:var(--surface2);border-bottom:1px solid var(--border);padding:6px 14px;display:flex;align-items:center;gap:8px;}
+.sort-lbl{font-size:10px;color:var(--text3);}
+.sort-btn{font-size:10px;padding:3px 9px;border:1px solid var(--border2);border-radius:4px;color:var(--text2);background:transparent;cursor:pointer;transition:all .15s;}
+.sort-btn.on{background:var(--me);border-color:var(--me);color:#fff;}
+
+/* CARD LIST */
+.card-list{padding:8px 12px 80px;}
+.sec-divider{display:flex;align-items:center;gap:8px;padding:8px 0 4px;font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;}
+.sec-divider::before,.sec-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.fair-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;border-left-width:3px;border-left-style:solid;cursor:pointer;transition:transform .1s,box-shadow .1s;display:flex;align-items:center;gap:10px;}
+.fair-card:active{transform:scale(.98);}
+.fair-card.eu{border-left-color:var(--eu);}
+.fair-card.na{border-left-color:var(--na);}
+.fair-card.sa{border-left-color:var(--sa);}
+.fair-card.ap{border-left-color:var(--ap);}
+.fair-card.me{border-left-color:var(--me);}
+.fair-card.kr{border-left-color:var(--kr);background:rgba(83,74,183,.03);}
+.card-rank{font-size:11px;font-weight:500;color:var(--text3);width:18px;flex-shrink:0;text-align:center;}
+.card-rank.top{color:#f59e0b;}
+.card-flag{font-size:16px;flex-shrink:0;}
+.card-main{flex:1;min-width:0;}
+.card-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-name.kae{color:#3c3489;}
+.card-sub{font-size:10px;color:var(--text2);margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.card-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.dday{font-size:12px;font-weight:600;}
+.dday.up{color:#854f0b;} .dday.end{color:var(--text3);font-size:11px;} .dday.off{font-size:10px;color:var(--text3);}
+.dday.kr{color:#3c3489;}
+/* badges */
+.badge{font-size:9px;padding:2px 6px;border-radius:3px;}
+.b-ok{background:var(--confirm-bg);color:var(--confirm);border:1px solid var(--confirm-bd);}
+.b-tbc{background:var(--tbcbg);color:var(--tbc);border:1px solid var(--tbcbd);}
+.b-off{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+.b-mv{background:var(--mv-bg);color:var(--mv);border:1px solid var(--mv-bd);}
+.b-cycle{background:var(--surface2);color:var(--text3);border:1px solid var(--border);}
+/* visitor chip */
+.vc{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:500;}
+.vc .d{width:5px;height:5px;border-radius:50%;}
+.vc-s{background:#f1efe8;color:#5f5e5a;border:1px solid #d3d1c7;} .vc-s .d{background:#888780;}
+.vc-m{background:#eaf3de;color:#3b6d11;border:1px solid #c0dd97;} .vc-m .d{background:#3b6d11;}
+.vc-l{background:#e6f1fb;color:#185fa5;border:1px solid #b5d4f4;} .vc-l .d{background:#185fa5;}
+.vc-xl{background:#faece7;color:#712b13;border:1px solid #f5c4b3;} .vc-xl .d{background:#993c1d;}
+
+/* FOOTER */
+.footer-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;z-index:50;}
+.footer-url{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+.footer-verify{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);}
+.verify-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;}
+.copy-btn{font-size:10px;color:var(--me);border:1px solid var(--me);border-radius:4px;padding:3px 8px;background:transparent;cursor:pointer;}
+
+/* ── DETAIL SCREEN ── */
+.detail-back{display:flex;align-items:center;gap:6px;padding:12px 16px;font-size:13px;color:var(--me);cursor:pointer;border-bottom:1px solid var(--border);background:var(--surface);}
+.detail-hdr{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--surface);}
+.detail-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.detail-flag{font-size:28px;line-height:1;margin-top:3px;}
+.detail-name-en{font-size:18px;font-weight:700;color:var(--text);line-height:1.2;}
+.detail-abbr{display:inline-block;font-size:10px;padding:2px 6px;border-radius:3px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);margin-left:6px;vertical-align:middle;}
+.detail-name-kr{font-size:12px;color:var(--text2);margin-top:3px;}
+.detail-sub-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:4px;}
+.reg-tag{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;}
+.rt-eu{background:rgba(226,75,74,.1);color:var(--eu);border:1px solid rgba(226,75,74,.3);}
+.rt-na{background:rgba(216,90,48,.1);color:var(--na);border:1px solid rgba(216,90,48,.3);}
+.rt-sa{background:rgba(186,117,23,.1);color:var(--sa);border:1px solid rgba(186,117,23,.3);}
+.rt-ap{background:rgba(59,109,17,.1);color:var(--ap);border:1px solid rgba(59,109,17,.3);}
+.rt-me{background:rgba(24,95,165,.1);color:var(--me);border:1px solid rgba(24,95,165,.3);}
+.rt-kr{background:rgba(83,74,183,.1);color:var(--kr);border:1px solid rgba(83,74,183,.3);}
+.detail-dday-row{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;}
+.detail-dday{font-size:26px;font-weight:700;}
+.detail-dday-date{font-size:12px;color:var(--text2);}
+.detail-badges{display:flex;gap:6px;flex-wrap:wrap;}
+.detail-body{padding:12px 16px 80px;display:flex;flex-direction:column;gap:10px;}
+.d-sec{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.d-sec-title{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+.info-row{display:flex;gap:10px;margin-bottom:6px;align-items:flex-start;}
+.info-row:last-child{margin-bottom:0;}
+.info-key{font-size:11px;color:var(--text3);width:56px;flex-shrink:0;padding-top:1px;}
+.info-val{font-size:12px;color:var(--text);flex:1;line-height:1.5;}
+.info-val.hi{color:var(--me);}
+/* date boxes */
+.date-boxes{display:flex;gap:6px;}
+.dbox{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center;}
+.dbox.cur{border-color:var(--me);background:rgba(24,95,165,.05);}
+.dbox.skip-box{opacity:.5;}
+.dbox-yr{font-size:10px;color:var(--text3);margin-bottom:3px;}
+.dbox-yr.cur{color:var(--me);}
+.dbox-date{font-size:11px;font-weight:500;color:var(--text);line-height:1.5;}
+.dbox-date.confirmed{color:var(--me);}
+.dbox-date.skip{font-size:10px;color:var(--text3);font-style:italic;}
+.dbox-badge{font-size:8px;margin-top:4px;padding:1px 5px;border-radius:3px;display:inline-block;}
+.bb-ok{background:var(--confirm-bg);color:var(--confirm);}
+.bb-off{background:var(--surface2);color:var(--text3);}
+/* detail timeline */
+.d-tl-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.d-tl-row:last-child{margin-bottom:0;}
+.d-tl-yr{font-size:10px;color:var(--text3);width:30px;flex-shrink:0;}
+.d-tl-yr.cur{color:var(--text);font-weight:500;}
+.d-tl-track{flex:1;height:12px;background:var(--border);border-radius:3px;position:relative;}
+.d-tl-bar{position:absolute;top:0;height:100%;border-radius:3px;}
+.d-tl-empty{flex:1;height:12px;border-radius:3px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;}
+.d-tl-empty-lbl{font-size:8px;color:var(--text3);}
+.d-tl-today{position:absolute;top:-3px;bottom:-3px;width:2px;background:#f59e0b;border-radius:1px;}
+.d-tl-date{font-size:10px;color:var(--text3);width:58px;text-align:right;flex-shrink:0;}
+.d-tl-date.cur{color:var(--text);}
+/* timezone */
+.tz-row{display:flex;justify-content:space-between;align-items:center;}
+.tz-col{display:flex;flex-direction:column;gap:3px;}
+.tz-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;}
+.tz-val{font-size:20px;font-weight:600;color:var(--text);font-family:'JetBrains Mono',monospace;}
+.tz-val.kr{color:var(--kr);}
+.tz-diff{font-size:11px;color:var(--text3);text-align:center;margin-top:6px;}
+/* official link */
+.official-link{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:500;color:var(--me);text-decoration:none;cursor:pointer;}
+.verify-row{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LIST SCREEN ══════════════ -->
+<div id="screen-list">
+
+  <div class="hdr">
+    <div class="hdr-top">
+      <div>
+        <div class="hdr-title">🌾 AgriTracker 2026</div>
+        <div class="hdr-sub mono" id="last-updated-lbl">데이터 로딩 중...</div>
+      </div>
+      <button class="share-btn" onclick="copyLink()">공유 ↗</button>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="tl-section">
+    <div class="tl-title">2026 연간 개최 일정</div>
+    <div class="tl-legend">
+      <div class="leg"><div class="leg-dot" style="background:var(--eu)"></div>유럽</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--na)"></div>북미</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--sa)"></div>남미</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--ap)"></div>아태</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--me)"></div>중동</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--kr)"></div>한국</div>
+    </div>
+    <div class="tl-axis" id="tl-axis"></div>
+    <div id="tl-body"></div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="filter-wrap">
+    <div class="chips" id="filter-chips">
+      <button class="chip active" data-filter="all" onclick="setFilter('all',this)">전체</button>
+      <button class="chip" data-filter="eu" onclick="setFilter('eu',this)">🌍 유럽</button>
+      <button class="chip" data-filter="na" onclick="setFilter('na',this)">🌎 북미</button>
+      <button class="chip" data-filter="sa" onclick="setFilter('sa',this)">🌎 남미</button>
+      <button class="chip" data-filter="ap" onclick="setFilter('ap',this)">🌏 아태</button>
+      <button class="chip" data-filter="me" onclick="setFilter('me',this)">🕌 중동</button>
+    </div>
+  </div>
+
+  <!-- SORT -->
+  <div class="sort-wrap">
+    <span class="sort-lbl">정렬:</span>
+    <button class="sort-btn" data-sort="dday" onclick="setSort('dday',this)">D-Day</button>
+    <button class="sort-btn on" data-sort="visitors" onclick="setSort('visitors',this)">참관객↓</button>
+    <button class="sort-btn" data-sort="date" onclick="setSort('date',this)">날짜</button>
+  </div>
+
+  <!-- CARD LIST -->
+  <div class="card-list" id="card-list"></div>
+
+  <!-- FOOTER -->
+  <div class="footer-bar">
+    <div>
+      <div class="footer-url mono">agrifair.github.io/tracker</div>
+      <div class="footer-verify">
+        <div class="verify-dot"></div>
+        <span id="verify-date-lbl">확인 중...</span>
+      </div>
+    </div>
+    <button class="copy-btn" onclick="copyLink()">링크 복사</button>
+  </div>
+</div>
+
+<!-- ══════════════ DETAIL SCREEN ══════════════ -->
+<div id="screen-detail">
+  <div class="detail-back" onclick="closeDetail()">← 목록으로</div>
+  <div id="detail-content"></div>
+</div>
+
+<script>
+const TODAY = new Date('2026-03-23');
+const YEAR = 2026;
+const DAYS_IN_YEAR = 365;
+
+// region colors
+const RCOL = {eu:'--eu',na:'--na',sa:'--sa',ap:'--ap',me:'--me',kr:'--kr'};
+const RNAME = {eu:'유럽',na:'북미',sa:'남미',ap:'아태',me:'중동',kr:'한국'};
+const RTAG = {eu:'rt-eu',na:'rt-na',sa:'rt-sa',ap:'rt-ap',me:'rt-me',kr:'rt-kr'};
+
+// visitor tier
+function vcTier(v){
+  if(!v) return {cls:'vc-s',label:'미공개'};
+  if(v>=500000) return {cls:'vc-xl',label:Math.round(v/10000)*10+'만+'};
+  if(v>=200000) return {cls:'vc-xl',label:Math.round(v/10000)*10+'만+'};
+  if(v>=100000) return {cls:'vc-l',label:Math.round(v/10000)*10+'만+'};
+  if(v>=50000)  return {cls:'vc-m',label:Math.round(v/10000)*10+'만+'};
+  return {cls:'vc-s',label:Math.round(v/1000)+'천+'};
+}
+
+// day of year (0-indexed)
+function dayOfYear(dateStr){
+  const d = new Date(dateStr);
+  const start = new Date(d.getFullYear(),0,1);
+  return Math.floor((d-start)/(1000*60*60*24));
+}
+
+function todayPct(){
+  return dayOfYear(TODAY.toISOString().slice(0,10)) / DAYS_IN_YEAR * 100;
+}
+
+// get this year's date entry
+function getYearDate(fair, yr){
+  const dates = fair.dates;
+  if(!dates) return null;
+  const key = String(yr);
+  if(dates[key] === null) return {skip:true};
+  if(dates[key]) return dates[key];
+  return null;
+}
+
+// D-Day calculation
+function dday(dateStr){
+  if(!dateStr) return null;
+  const d = new Date(dateStr);
+  const diff = Math.ceil((d - TODAY)/(1000*60*60*24));
+  return diff;
+}
+
+function ddayLabel(fair){
+  const d2026 = getYearDate(fair, YEAR);
+  if(!d2026 || d2026.skip) return {label:'미개최년', cls:'off'};
+  const s = dday(d2026.start);
+  const e = dday(d2026.end);
+  if(s === null) return {label:'미발표', cls:'off'};
+  if(e < 0) return {label:'종료', cls:'end'};
+  if(s <= 0 && e >= 0) return {label:'진행중', cls:'on'};
+  return {label:'D-'+s, cls:fair.is_home?'kr':'up'};
+}
+
+// format date KR style
+function fmtDate(s,e){
+  if(!s) return '미발표';
+  const sd = s.slice(5).replace('-','.');
+  const ed = e.slice(5).replace('-','.');
+  const sy = s.slice(2,4);
+  return sy+'.'+sd+'~'+ed;
+}
+
+// sort helpers
+let currentFilter = 'all';
+let currentSort = 'visitors';
+let faresData = [];
+
+function sortFairs(fairs){
+  const home = fairs.filter(f=>f.is_home);
+  const others = fairs.filter(f=>!f.is_home);
+  if(currentSort === 'visitors'){
+    others.sort((a,b)=>(b.visitors||0)-(a.visitors||0));
+  } else if(currentSort === 'dday'){
+    others.sort((a,b)=>{
+      const da = getYearDate(a,YEAR), db = getYearDate(b,YEAR);
+      const sa = da&&!da.skip ? dday(da.start) : 9999;
+      const sb = db&&!db.skip ? dday(db.start) : 9999;
+      if(sa<0&&sb>=0) return 1;
+      if(sb<0&&sa>=0) return -1;
+      return sa-sb;
+    });
+  } else if(currentSort === 'date'){
+    others.sort((a,b)=>{
+      const da = getYearDate(a,YEAR), db = getYearDate(b,YEAR);
+      const sa = da&&!da.skip&&da.start ? da.start : '9999';
+      const sb = db&&!db.skip&&db.start ? db.start : '9999';
+      return sa.localeCompare(sb);
+    });
+  }
+  return [...home, ...others];
+}
+
+function filterFairs(fairs){
+  if(currentFilter === 'all') return fairs;
+  return fairs.filter(f=>f.is_home || f.region===currentFilter);
+}
+
+// ── BUILD TIMELINE ──
+function buildTimeline(fairs){
+  // axis
+  const axis = document.getElementById('tl-axis');
+  axis.innerHTML = Array.from({length:12},(_,i)=>
+    `<div class="tl-am${i===8?' cur':''}">${i+1}</div>`
+  ).join('');
+
+  const tp = todayPct();
+  const body = document.getElementById('tl-body');
+  let html = '';
+
+  // KAE
+  const kae = fairs.find(f=>f.is_home);
+  if(kae){
+    const d = getYearDate(kae, YEAR);
+    const l = d&&!d.skip ? (dayOfYear(d.start)/DAYS_IN_YEAR*100).toFixed(2) : null;
+    const w = d&&!d.skip ? Math.max(((dayOfYear(d.end)-dayOfYear(d.start)+1)/DAYS_IN_YEAR*100).toFixed(2),1.5) : null;
+    html += `<div class="kae-box">
+      <div class="kae-box-lbl">농업박람회</div>
+      <div class="kae-box-sub">Korea Agri Expo · KAE</div>
+      <div class="tl-row">
+        <div class="tl-name kae">KAE</div>
+        <div class="tl-track">
+          ${gridCells()}
+          ${l ? `<div class="tl-bar" style="left:${l}%;width:${w}%;background:var(--kr);height:8px;"></div>` : ''}
+          <div class="tl-today-line" style="left:${tp.toFixed(2)}%"><div class="tl-today-lbl">오늘</div></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // regions in order
+  const regions = ['eu','na','sa','ap','me'];
+  const regionFairs = {};
+  regions.forEach(r=>{ regionFairs[r] = fairs.filter(f=>f.region===r); });
+
+  regions.forEach(r=>{
+    const list = regionFairs[r];
+    if(!list.length) return;
+    html += `<div class="reg-hdr rh-${r}">${RNAME[r]}</div>`;
+    list.forEach(f=>{
+      const d = getYearDate(f, YEAR);
+      const skip = !d || d.skip;
+      const l = !skip ? (dayOfYear(d.start)/DAYS_IN_YEAR*100).toFixed(2) : null;
+      const w = !skip ? Math.max(((dayOfYear(d.end)-dayOfYear(d.start)+1)/DAYS_IN_YEAR*100).toFixed(2),1.5) : null;
+      const col = `var(--${r})`;
+      html += `<div class="tl-row">
+        <div class="tl-name">${f.name_abbr}</div>
+        <div class="tl-track">
+          ${gridCells()}
+          ${skip ? '<div class="tl-skip-bar"></div>' : `<div class="tl-bar" style="left:${l}%;width:${w}%;background:${col};height:6px;top:1px;"></div>`}
+        </div>
+      </div>`;
+    });
+  });
+
+  body.innerHTML = html;
+}
+
+function gridCells(){
+  return `<div class="tl-grid-overlay">${Array.from({length:12},()=>'<div class="tl-gc"></div>').join('')}</div>`;
+}
+
+// ── BUILD CARD LIST ──
+function buildCards(fairs){
+  const filtered = filterFairs(fairs);
+  const sorted = sortFairs(filtered);
+  const container = document.getElementById('card-list');
+  let html = '';
+
+  // KAE first
+  const kae = sorted.find(f=>f.is_home);
+  if(kae) html += renderCard(kae, '★');
+
+  html += `<div class="sec-divider">해외 행사</div>`;
+
+  let rank = 1;
+  sorted.filter(f=>!f.is_home).forEach(f=>{
+    const isTop = f.visitors && f.visitors >= 200000;
+    html += renderCard(f, rank, isTop);
+    rank++;
+  });
+
+  container.innerHTML = html;
+}
+
+function renderCard(f, rank, isTop){
+  const dd = ddayLabel(f);
+  const d2026 = getYearDate(f, YEAR);
+  const dateStr = d2026&&!d2026.skip&&d2026.start ? fmtDate(d2026.start, d2026.end) : (d2026&&d2026.skip?'— — —':'미발표');
+  const vc = vcTier(f.visitors);
+
+  // confirm badge
+  let confirmBadge = '';
+  if(!d2026 || d2026.skip){ confirmBadge=''; }
+  else if(!d2026.start){ confirmBadge=`<span class="badge b-tbc">미발표</span>`; }
+  else if(d2026.confirmed){ confirmBadge=`<span class="badge b-ok">✓ 공식확인</span>`; }
+  else { confirmBadge=`<span class="badge b-tbc">미확정</span>`; }
+
+  const mvBadge = f.minister_visit ? `<span class="badge b-mv">장관 방문 '${f.minister_visit.slice(2)}</span>` : '';
+  const cycleBadge = f.cycle_years>1 ? `<span class="badge b-cycle">${f.cycle}↻</span>` : '';
+
+  const rankHtml = typeof rank === 'string'
+    ? `<div class="card-rank" style="color:#3c3489;">${rank}</div>`
+    : `<div class="card-rank${f.visitors&&f.visitors>=300000?' top':''}">${rank}</div>`;
+
+  return `<div class="fair-card ${f.region}" onclick="openDetail('${f.id}')">
+    ${rankHtml}
+    <div class="card-flag">${f.flag}</div>
+    <div class="card-main">
+      <div class="card-name${f.is_home?' kae':''}">${f.name_en}</div>
+      <div class="card-sub">
+        <span style="font-size:10px;color:var(--text3);">${f.city}</span>
+        ${cycleBadge}${confirmBadge}${mvBadge}
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:2px;">${dateStr}</div>
+    </div>
+    <div class="card-right">
+      <div class="dday ${dd.cls}">${dd.label}</div>
+      <div class="vc ${vc.cls}"><span class="d"></span>${vc.label}</div>
+    </div>
+  </div>`;
+}
+
+// ── DETAIL ──
+function openDetail(id){
+  const f = faresData.find(x=>x.id===id);
+  if(!f) return;
+  document.getElementById('detail-content').innerHTML = buildDetailHTML(f);
+  startClock(f);
+  const s = document.getElementById('screen-detail');
+  s.style.display='block';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>s.classList.add('open')));
+  window.scrollTo(0,0);
+}
+
+function closeDetail(){
+  const s = document.getElementById('screen-detail');
+  s.classList.remove('open');
+  setTimeout(()=>{ s.style.display='none'; },280);
+}
+
+function buildDetailHTML(f){
+  const d2026 = getYearDate(f, YEAR);
+  const dd = ddayLabel(f);
+  const vc = vcTier(f.visitors);
+
+  // D-Day display
+  let ddayColor = '';
+  if(dd.cls==='up') ddayColor='color:#854f0b;';
+  else if(dd.cls==='on') ddayColor='color:#3b6d11;';
+  else if(dd.cls==='kr') ddayColor='color:#3c3489;';
+  else ddayColor='color:var(--text3);font-size:18px;';
+
+  const dateStr = d2026&&!d2026.skip&&d2026.start ? fmtDate(d2026.start,d2026.end) : '—';
+
+  // badges
+  let confirmBadge = '';
+  if(d2026&&!d2026.skip){
+    if(!d2026.start) confirmBadge=`<span class="badge b-tbc">미발표</span>`;
+    else if(d2026.confirmed) confirmBadge=`<span class="badge b-ok">✓ 공식확인 · 26.03.23</span>`;
+    else confirmBadge=`<span class="badge b-tbc">미확정</span>`;
+  }
+  const mvBadge = f.minister_visit ? `<span class="badge b-mv">장관 방문 '${f.minister_visit.slice(2)}</span>` : '';
+
+  // date boxes: show 3 most recent years including current
+  const allYears = Object.keys(f.dates).map(Number).sort();
+  const showYears = [];
+  // pick last 2 years + current year
+  const pastYears = allYears.filter(y=>y<YEAR).slice(-2);
+  pastYears.forEach(y=>showYears.push(y));
+  if(!showYears.includes(YEAR)) showYears.push(YEAR);
+
+  let dateBoxesHtml = '<div class="date-boxes">';
+  showYears.forEach(y=>{
+    const d = f.dates[String(y)];
+    const isCur = y===YEAR;
+    if(!d){
+      dateBoxesHtml += `<div class="dbox skip-box${isCur?' cur':''}">
+        <div class="dbox-yr${isCur?' cur':''}">${y}</div>
+        <div class="dbox-date skip">미개최년</div>
+        <div class="dbox-badge bb-off">${f.cycle}↻</div>
+      </div>`;
+    } else {
+      dateBoxesHtml += `<div class="dbox${isCur?' cur':''}">
+        <div class="dbox-yr${isCur?' cur':''}">${y}</div>
+        <div class="dbox-date${d.confirmed?' confirmed':''}">${d.start?d.start.slice(5).replace('-','.')+'<br>~'+d.end.slice(5).replace('-','.'):'미발표'}</div>
+        <div class="dbox-badge${d.confirmed?' bb-ok':' bb-off'}">${d.confirmed?'공식확인':'미확정'}</div>
+      </div>`;
+    }
+  });
+  dateBoxesHtml += '</div>';
+
+  // detail timeline: last 3 years
+  const tlYears = allYears.filter(y=>y<=YEAR).slice(-3);
+  const tp = todayPct();
+  let tlHtml = '';
+  tlYears.forEach(y=>{
+    const d = f.dates[String(y)];
+    const isCur = y===YEAR;
+    if(!d){
+      tlHtml += `<div class="d-tl-row">
+        <div class="d-tl-yr${isCur?' cur':''}">${y}</div>
+        <div class="d-tl-empty"><span class="d-tl-empty-lbl">${f.cycle} 미개최</span></div>
+        <div class="d-tl-date">—</div>
+      </div>`;
+    } else {
+      const l = (dayOfYear(d.start)/DAYS_IN_YEAR*100).toFixed(2);
+      const w = Math.max(((dayOfYear(d.end)-dayOfYear(d.start)+1)/DAYS_IN_YEAR*100).toFixed(2),1.5);
+      const col = isCur ? `var(--${f.region})` : (isCur?`var(--${f.region})`:'#b4b2a9');
+      const opacity = isCur?1:(y===Math.max(...tlYears.filter(x=>x!==YEAR))?0.65:0.4);
+      tlHtml += `<div class="d-tl-row">
+        <div class="d-tl-yr${isCur?' cur':''}">${y}</div>
+        <div class="d-tl-track">
+          ${gridCells()}
+          <div class="d-tl-bar" style="left:${l}%;width:${w}%;background:${col};opacity:${opacity};"></div>
+          ${isCur?`<div class="d-tl-today" style="left:${tp.toFixed(2)}%;"></div>`:''}
+        </div>
+        <div class="d-tl-date${isCur?' cur':''}">${d.start?d.start.slice(5).replace('-','.')+'~'+d.end.slice(5).replace('-','.'):'—'}</div>
+      </div>`;
+    }
+  });
+
+  // timezone
+  const offset = parseInt(f.utc_offset);
+  const seoulOffset = 9;
+  const diff = offset - seoulOffset;
+  const diffStr = diff===0?'서울과 동일 시간대':`서울보다 ${diff>0?'+':''}${diff}시간`;
+
+  return `
+    <div class="detail-hdr">
+      <div class="detail-top">
+        <div class="detail-flag">${f.flag}</div>
+        <div style="flex:1">
+          <div>
+            <span class="detail-name-en">${f.name_en}</span>
+            <span class="detail-abbr">${f.name_abbr}</span>
+          </div>
+          <div class="detail-name-kr">${f.name_kr}</div>
+          <div class="detail-sub-row">
+            <span class="reg-tag ${RTAG[f.region]}">${RNAME[f.region]}</span>
+            <span style="font-size:11px;color:var(--text2);">${f.category} · ${f.cycle}</span>
+          </div>
+        </div>
+      </div>
+      <div class="detail-dday-row">
+        <div class="detail-dday" style="${ddayColor}">${dd.label}</div>
+        <div class="detail-dday-date">${dateStr}</div>
+      </div>
+      <div class="detail-badges">${confirmBadge}${mvBadge}</div>
+    </div>
+
+    <div class="detail-body">
+
+      <div class="d-sec">
+        <div class="d-sec-title">기본 정보</div>
+        <div class="info-row"><div class="info-key">개최지</div><div class="info-val">${f.city}, ${f.country}</div></div>
+        <div class="info-row"><div class="info-key">장소</div><div class="info-val">${f.venue}</div></div>
+        <div class="info-row"><div class="info-key">성격</div><div class="info-val">${f.character}</div></div>
+        <div class="info-row"><div class="info-key">규모</div><div class="info-val hi">${f.scale}</div></div>
+        ${f.visitors?`<div class="info-row"><div class="info-key">참관객</div><div class="info-val">${f.visitors.toLocaleString()}+명</div></div>`:''}
+        ${f.exhibitors?`<div class="info-row"><div class="info-key">참가업체</div><div class="info-val">${f.exhibitors.toLocaleString()}+개사</div></div>`:''}
+      </div>
+
+      <div class="d-sec">
+        <div class="d-sec-title">개최일 · 공식사이트 기준</div>
+        ${dateBoxesHtml}
+      </div>
+
+      <div class="d-sec">
+        <div class="d-sec-title">연간 타임라인</div>
+        ${tlHtml}
+      </div>
+
+      <div class="d-sec">
+        <div class="d-sec-title">현지시간 ↔ 서울</div>
+        <div class="tz-row">
+          <div class="tz-col">
+            <div class="tz-lbl">${f.city} UTC${f.utc_offset}</div>
+            <div class="tz-val mono" id="tz-local">--:--:--</div>
+          </div>
+          <div style="font-size:16px;color:var(--text3);">⇄</div>
+          <div class="tz-col" style="text-align:right;">
+            <div class="tz-lbl">서울 UTC+9</div>
+            <div class="tz-val mono kr" id="tz-seoul">--:--:--</div>
+          </div>
+        </div>
+        <div class="tz-diff">${diffStr}</div>
+      </div>
+
+      <a class="official-link" href="${f.url}" target="_blank" rel="noopener">
+        ↗ ${f.url.replace('https://www.','')} · 공식사이트
+      </a>
+
+      <div class="verify-row">
+        <div class="verify-dot"></div>
+        <span style="font-size:10px;color:var(--text3);">26.03.23 공식사이트 검증 완료</span>
+      </div>
+    </div>`;
+}
+
+// ── CLOCK ──
+let clockInterval = null;
+function startClock(f){
+  if(clockInterval) clearInterval(clockInterval);
+  function tick(){
+    const now = new Date();
+    // Seoul
+    const seoulTime = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
+    document.getElementById('tz-seoul').textContent =
+      seoulTime.toTimeString().slice(0,8);
+    // Local
+    try{
+      const localTime = new Date(now.toLocaleString('en-US',{timeZone:f.timezone}));
+      document.getElementById('tz-local').textContent =
+        localTime.toTimeString().slice(0,8);
+    } catch(e){
+      const offset = parseInt(f.utc_offset);
+      const localMs = now.getTime() + (offset - 9)*3600000;
+      const localTime = new Date(localMs);
+      document.getElementById('tz-local').textContent =
+        localTime.toUTCString().slice(17,25);
+    }
+  }
+  tick();
+  clockInterval = setInterval(tick, 1000);
+}
+
+// ── FILTER / SORT ──
+function setFilter(val, btn){
+  currentFilter = val;
+  document.querySelectorAll('#filter-chips .chip').forEach(b=>b.className='chip');
+  btn.className = val==='all'?'chip active':`chip active-${val}`;
+  buildCards(faresData);
+}
+
+function setSort(val, btn){
+  currentSort = val;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  buildCards(faresData);
+}
+
+// ── SHARE / COPY ──
+function copyLink(){
+  const url = 'https://agrifair.github.io/tracker';
+  if(navigator.clipboard){ navigator.clipboard.writeText(url); }
+  alert('링크가 복사되었습니다!\n' + url);
+}
+
+// ── LOAD DATA ──
+async function loadData(){
+  try {
+    const res = await fetch('data/fairs.json');
+    const data = await res.json();
+    faresData = data.fairs;
+
+    // update labels
+    const lu = data.meta.last_updated;
+    document.getElementById('last-updated-lbl').textContent =
+      `21개 행사 · 공식사이트 검증`;
+    document.getElementById('verify-date-lbl').textContent =
+      lu.slice(2).replace(/-/g,'.') + ' 공식사이트 검증';
+
+    buildTimeline(faresData);
+    buildCards(faresData);
+  } catch(e){
+    console.error('Failed to load fairs.json:', e);
+    document.getElementById('last-updated-lbl').textContent = '데이터 로드 실패';
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
