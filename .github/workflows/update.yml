@@ -1,0 +1,29 @@
+name: Weekly Fair Date Update
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests beautifulsoup4
+      - run: python scraper.py
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/fairs.json
+          if git diff --staged --quiet; then
+            echo "No changes."
+          else
+            git commit -m "data: auto-update $(date -u +%Y-%m-%d)"
+            git push
+          fi
